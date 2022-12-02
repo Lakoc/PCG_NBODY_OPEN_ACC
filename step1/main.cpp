@@ -54,8 +54,7 @@ int main(int argc, char **argv) {
 
     // 1.  Memory allocation on CPU
     Particles particles = Particles(N);
-    Velocities velocities = Velocities(N);
-
+    Velocities tmp_velocities = Velocities(N);
 
     // 2. Create memory descriptor
     /*
@@ -66,13 +65,13 @@ int main(int argc, char **argv) {
      *                                    in floats, not bytes        not bytes
     */
     MemDesc md(
-            &particles.data->x, 4, 0,            // Position in X
-            &particles.data->y, 4, 0,            // Position in Y
-            &particles.data->z, 4, 0,            // Position in Z
-            &velocities.data->x, 3, 0,            // Velocity in X
-            &velocities.data->y, 3, 0,            // Velocity in Y
-            &velocities.data->z, 3, 0,            // Velocity in Z
-            &particles.data->w, 4, 0,            // Weight
+            &particles.pos->x, 4, 0,            // Position in X
+            &particles.pos->y, 4, 0,            // Position in Y
+            &particles.pos->z, 4, 0,            // Position in Z
+            &particles.vel->x, 3, 0,            // Velocity in X
+            &particles.vel->y, 3, 0,            // Velocity in Y
+            &particles.vel->z, 3, 0,            // Velocity in Z
+            &particles.pos->w, 4, 0,            // Weight
             N,                                                                // Number of particles
             recordsNum);                                                      // Number of records in output file
 
@@ -91,7 +90,7 @@ int main(int argc, char **argv) {
 
     // 3. Copy data to GPU
     particles.copyToGPU();
-    velocities.copyToGPU();
+    tmp_velocities.copyToGPU();
 
 
     // Start the time
@@ -101,9 +100,9 @@ int main(int argc, char **argv) {
 
     // 4. Run the loop - calculate new Particle positions.
     for (int s = 0; s < steps; s++) {
-        calculate_gravitation_velocity(particles, velocities, N, dt);
-        calculate_collision_velocity(particles, velocities, N, dt);
-        update_particle(particles, velocities, N, dt);
+        calculate_gravitation_velocity(particles, tmp_velocities, N, dt);
+        calculate_collision_velocity(particles, tmp_velocities, N, dt);
+        update_particle(particles, tmp_velocities, N, dt);
 
         /// In step 4 - fill in the code to store Particle snapshots.
         if (writeFreq > 0 && (s % writeFreq == 0)) {
@@ -128,7 +127,7 @@ int main(int argc, char **argv) {
 
     // 5. Copy data from GPU back to CPU.
     particles.copyToCPU();
-    velocities.copyToCPU();
+    tmp_velocities.copyToCPU();
 
 
 

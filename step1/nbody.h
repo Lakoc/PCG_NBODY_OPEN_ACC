@@ -30,6 +30,8 @@ constexpr float G = 6.67384e-11f;
 /// Collision distance threshold
 constexpr float COLLISION_DISTANCE = 0.01f;
 constexpr float COLLISION_DISTANCE_INVERSE = 100.0f;
+constexpr float COLLISION_DISTANCE_INVERSE_POW3 = 1e6f;
+constexpr float INVERSE_SQRT_POW3 = -3.0 / 2.0;
 
 /**
  * @struct float4
@@ -40,6 +42,9 @@ struct float4 {
     float y;
     float z;
     float w;
+
+    float4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
+    float4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
 };
 
 /// Define sqrtf from CUDA libm library
@@ -50,39 +55,49 @@ struct float4 {
 //                                  If necessary, add your own classes / routines                                     //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
 struct float3 {
     float x;
     float y;
     float z;
+    float3() : x(0.0f), y(0.0f), z(0.0f) {}
+    float3(float x, float y, float z) : x(x), y(y), z(z) {}
 };
 
 /**
  * Structure with particle data
  */
 struct Particles {
-    float4 *data;
+    float4 *pos;
+    float3 *vel;
     size_t p_count;
     // Fill the structure holding the particle/s data
     // It is recommended to implement constructor / destructor and copyToGPU and copyToCPU routines
 
     Particles(size_t p_count) : p_count(p_count) {
-        data = new float4[p_count];
+        pos = new float4[p_count];
+        vel = new float3[p_count];
 #pragma acc enter data copyin(this)
-#pragma acc enter data create(data[p_count])
+#pragma acc enter data create(pos[p_count])
+#pragma acc enter data create(vel[p_count])
     }
 
     ~Particles() {
-#pragma acc exit data delete(data)
+#pragma acc exit data delete(pos)
+#pragma acc exit data delete(vel)
 #pragma acc exit data delete(this)
-        delete[] data;
+        delete[] pos;
+        delete[] vel;
     }
 
     void copyToGPU() {
-#pragma acc update device(data[p_count])
+#pragma acc update device(pos[p_count])
+#pragma acc update device(vel[p_count])
     }
 
     void copyToCPU() {
-#pragma acc update host(data[p_count])
+#pragma acc update host(pos[p_count])
+#pragma acc update host(vel[p_count])
     }
 
 
@@ -96,27 +111,27 @@ struct Particles {
 struct Velocities {
     // Fill the structure holding the particle/s data
     // It is recommended to implement constructor / destructor and copyToGPU and copyToCPU routines
-    float3 *data;
+    float3 *vel;
     size_t v_count;
 
     Velocities(size_t v_count) : v_count(v_count) {
-        data = new float3[v_count];
+        vel = new float3[v_count]();
 #pragma acc enter data copyin(this)
-#pragma acc enter data create(data[v_count])
+#pragma acc enter data create(vel[v_count])
     }
 
-    ~Velocities()  {
-#pragma acc exit data delete(data)
+    ~Velocities() {
+#pragma acc exit data delete(vel)
 #pragma acc exit data delete(this)
-        delete[] data;
+        delete[] vel;
     }
 
     void copyToGPU() {
-#pragma acc update device(data[v_count])
+#pragma acc update device(vel[v_count])
     }
 
     void copyToCPU() {
-#pragma acc update host(data[v_count])
+#pragma acc update host(vel[v_count])
     }
 
 
@@ -154,7 +169,7 @@ void calculate_collision_velocity(const Particles &p,
  * @param [in ] N        - Number of particles
  * @param [in]  dt       - Time step size
  */
-void update_particle(const Particles &p,
+void update_particle(Particles &p,
                      Velocities &tmp_vel,
                      const int N,
                      const float dt);

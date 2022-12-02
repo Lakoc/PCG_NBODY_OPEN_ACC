@@ -37,7 +37,7 @@ CC=nvc++
 CFLAGS=-march=native --c++14
 
 # Acceleration for Barbora GPUs
-ACC=-acc=gpu -gpu=cc70,fastmath,pinned
+ACC=-acc=gpu -gpu=cc61,fastmath,pinned
 
 # Acceleration for Barbora GPUs
 #ACC=-acc=multicore

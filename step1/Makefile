@@ -25,7 +25,7 @@ INPUT=../sampledata/sampleInput.h5
 SAMPLE_OUTPUT=../sampledata/sampleOutput.h5
 OUTPUT=step1Output.h5
 
-INCLUDE=../commons
+INCLUDE=../commons -I/usr/include/hdf5/serial/
 LIBS=-lhdf5 -lm
 
 FLAGS=  

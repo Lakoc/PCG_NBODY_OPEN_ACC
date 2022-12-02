@@ -16,7 +16,7 @@
 # *
 # */
 
-LIBS=-lhdf5
+LIBS=-lhdf5 -I/usr/include/hdf5/serial/
 
 .PHONY: all clean
 

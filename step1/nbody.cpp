@@ -32,8 +32,47 @@ void calculate_gravitation_velocity(const Particles& p,
                                     const float      dt)
 {
 
+#pragma acc parallel loop present(p,tmp_vel)
+    for (unsigned p1_index = 0; p1_index < N; p1_index++)
+    {
+        // Load particle_1 positions and weight
+        float4 pos_p1 = p.data[p1_index];
+
+        float3 v_temp = {0.0f, 0.0f, 0.0f};
+
+        float ir, dx, dy, dz, ir3, Fg_dt_m2_r;;
+#pragma acc loop
+        for (unsigned p2_index = p1_index; p2_index < N; p2_index++)
+        {
+            // Load particle_2 positions and weight
+            float4 pos_p2 = p.data[p2_index];
+
+            // Calculate per axis distance
+            // Reverted order to save up 1 more unary operation (-G  -> G)
+            dx = pos_p2.x - pos_p1.x;
+            dy = pos_p2.y - pos_p1.y;
+            dz = pos_p2.z - pos_p1.z;
+
+            // Calculate inverse of Euclidean distance between two particles, get rid of division
+            ir = 1.0f / sqrt(dx * dx + dy * dy + dz * dz);
+            ir3 = ir * ir * ir + FLT_MIN;
 
 
+            // Simplified from CPU implementation
+            Fg_dt_m2_r = G * dt * ir3 * pos_p2.w;
+
+            bool not_colliding = ir < COLLISION_DISTANCE_INVERSE;
+
+            // If there is no collision, add local velocities to temporal vector
+            v_temp.x += not_colliding ? Fg_dt_m2_r * dx : 0.0f;
+            v_temp.y += not_colliding ? Fg_dt_m2_r * dy : 0.0f;
+            v_temp.z += not_colliding ? Fg_dt_m2_r * dz : 0.0f;
+        }
+
+        tmp_vel.data[p1_index].x = v_temp.x;
+        tmp_vel.data[p1_index].y = v_temp.y;
+        tmp_vel.data[p1_index].z = v_temp.z;
+    }
 }// end of calculate_gravitation_velocity
 //----------------------------------------------------------------------------------------------------------------------
 

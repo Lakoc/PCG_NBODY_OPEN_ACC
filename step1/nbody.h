@@ -44,6 +44,7 @@ struct float4 {
     float w;
 
     float4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
+
     float4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
 };
 
@@ -60,7 +61,9 @@ struct float3 {
     float x;
     float y;
     float z;
+
     float3() : x(0.0f), y(0.0f), z(0.0f) {}
+
     float3(float x, float y, float z) : x(x), y(y), z(z) {}
 };
 
@@ -68,38 +71,50 @@ struct float3 {
  * Structure with particle data
  */
 struct Particles {
-    float4 *pos;
-    float3 *vel;
+    float *pos_x;
+    float *pos_y;
+    float *pos_z;
+    float *vel_x;
+    float *vel_y;
+    float *vel_z;
+    float *weight;
+
     size_t p_count;
     // Fill the structure holding the particle/s data
     // It is recommended to implement constructor / destructor and copyToGPU and copyToCPU routines
 
     Particles(size_t p_count) : p_count(p_count) {
-        pos = new float4[p_count];
-        vel = new float3[p_count];
+        pos_x = new float[p_count];
+        pos_y = new float[p_count];
+        pos_z = new float[p_count];
+        vel_x = new float[p_count];
+        vel_y = new float[p_count];
+        vel_z = new float[p_count];
+        weight = new float[p_count];
+
 #pragma acc enter data copyin(this)
-#pragma acc enter data create(pos[p_count])
-#pragma acc enter data create(vel[p_count])
+#pragma acc enter data create(pos_x[0:p_count], pos_y[0:p_count], pos_z[0:p_count], vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count], weight[0:p_count])
     }
 
     ~Particles() {
-#pragma acc exit data delete(pos)
-#pragma acc exit data delete(vel)
+#pragma acc exit data delete(pos_x, pos_y, pos_z, vel_x, vel_y, vel_z, weight)
 #pragma acc exit data delete(this)
-        delete[] pos;
-        delete[] vel;
+        delete[] pos_x;
+        delete[] pos_y;
+        delete[] pos_z;
+        delete[] vel_x;
+        delete[] vel_y;
+        delete[] vel_z;
+        delete[] weight;
     }
 
     void copyToGPU() {
-#pragma acc update device(pos[p_count])
-#pragma acc update device(vel[p_count])
+#pragma acc update device(pos_x[0:p_count], pos_y[0:p_count], pos_z[0:p_count], vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count], weight[0:p_count])
     }
 
     void copyToCPU() {
-#pragma acc update host(pos[p_count])
-#pragma acc update host(vel[p_count])
+#pragma acc update host(pos_x[0:p_count], pos_y[0:p_count], pos_z[0:p_count], vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count], weight[0:p_count])
     }
-
 
 };// end of Particles
 //----------------------------------------------------------------------------------------------------------------------
@@ -111,30 +126,34 @@ struct Particles {
 struct Velocities {
     // Fill the structure holding the particle/s data
     // It is recommended to implement constructor / destructor and copyToGPU and copyToCPU routines
-    float3 *vel;
-    size_t v_count;
+    float *vel_x;
+    float *vel_y;
+    float *vel_z;
+    size_t p_count;
 
-    Velocities(size_t v_count) : v_count(v_count) {
-        vel = new float3[v_count]();
+    Velocities(size_t p_count) : p_count(p_count) {
+        vel_x = new float[p_count]();
+        vel_y = new float[p_count]();
+        vel_z = new float[p_count]();
 #pragma acc enter data copyin(this)
-#pragma acc enter data create(vel[v_count])
+#pragma acc enter data create(vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count])
     }
 
     ~Velocities() {
-#pragma acc exit data delete(vel)
+#pragma acc exit data delete(vel_x, vel_y, vel_z)
 #pragma acc exit data delete(this)
-        delete[] vel;
+        delete[] vel_x;
+        delete[] vel_y;
+        delete[] vel_z;
     }
 
     void copyToGPU() {
-#pragma acc update device(vel[v_count])
+#pragma acc update device( vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count])
     }
 
     void copyToCPU() {
-#pragma acc update host(vel[v_count])
+#pragma acc update host( vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count])
     }
-
-
 };// end of Velocities
 //----------------------------------------------------------------------------------------------------------------------
 

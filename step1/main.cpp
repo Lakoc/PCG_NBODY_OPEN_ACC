@@ -65,13 +65,13 @@ int main(int argc, char **argv) {
      *                                    in floats, not bytes        not bytes
     */
     MemDesc md(
-            &particles.pos->x, 4, 0,            // Position in X
-            &particles.pos->y, 4, 0,            // Position in Y
-            &particles.pos->z, 4, 0,            // Position in Z
-            &particles.vel->x, 3, 0,            // Velocity in X
-            &particles.vel->y, 3, 0,            // Velocity in Y
-            &particles.vel->z, 3, 0,            // Velocity in Z
-            &particles.pos->w, 4, 0,            // Weight
+            particles.pos_x, 1, 0,            // Position in X
+            particles.pos_y, 1, 0,            // Position in Y
+            particles.pos_z, 1, 0,            // Position in Z
+            particles.vel_x, 1, 0,            // Velocity in X
+            particles.vel_y, 1, 0,            // Velocity in Y
+            particles.vel_z, 1, 0,            // Velocity in Z
+            particles.weight, 1, 0,            // Weight
             N,                                                                // Number of particles
             recordsNum);                                                      // Number of records in output file
 
@@ -90,8 +90,6 @@ int main(int argc, char **argv) {
 
     // 3. Copy data to GPU
     particles.copyToGPU();
-    tmp_velocities.copyToGPU();
-
 
     // Start the time
     auto startTime = std::chrono::high_resolution_clock::now();
@@ -127,9 +125,6 @@ int main(int argc, char **argv) {
 
     // 5. Copy data from GPU back to CPU.
     particles.copyToCPU();
-    tmp_velocities.copyToCPU();
-
-
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

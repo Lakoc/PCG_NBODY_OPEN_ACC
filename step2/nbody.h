@@ -42,6 +42,7 @@ struct float4 {
     float y;
     float z;
     float w;
+
 };
 
 /// Define sqrtf from CUDA libm library

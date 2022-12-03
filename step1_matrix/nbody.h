@@ -42,6 +42,10 @@ struct float4 {
     float y;
     float z;
     float w;
+
+    float4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
+
+    float4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
 };
 
 /// Define sqrtf from CUDA libm library
@@ -51,6 +55,17 @@ struct float4 {
 //                                       Declare following structs / classes                                          //
 //                                  If necessary, add your own classes / routines                                     //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+struct float3 {
+    float x;
+    float y;
+    float z;
+
+    float3() : x(0.0f), y(0.0f), z(0.0f) {}
+
+    float3(float x, float y, float z) : x(x), y(y), z(z) {}
+};
 
 /**
  * Structure with particle data
@@ -117,11 +132,11 @@ struct Velocities {
     size_t p_count;
 
     Velocities(size_t p_count) : p_count(p_count) {
-        vel_x = new float[p_count]();
-        vel_y = new float[p_count]();
-        vel_z = new float[p_count]();
+        vel_x = new float[p_count*p_count]();
+        vel_y = new float[p_count*p_count]();
+        vel_z = new float[p_count*p_count]();
 #pragma acc enter data copyin(this)
-#pragma acc enter data create(vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count])
+#pragma acc enter data create(vel_x[0:p_count*p_count], vel_y[0:p_count*p_count], vel_z[0:p_count*p_count])
     }
 
     ~Velocities() {
@@ -132,6 +147,13 @@ struct Velocities {
         delete[] vel_z;
     }
 
+    void copyToGPU() {
+#pragma acc update device( vel_x[0:p_count*p_count], vel_y[0:p_count*p_count], vel_z[0:p_count*p_count])
+    }
+
+    void copyToCPU() {
+#pragma acc update host( vel_x[0:p_count*p_count], vel_y[0:p_count*p_count], vel_z[0:p_count*p_count])
+    }
 };// end of Velocities
 //----------------------------------------------------------------------------------------------------------------------
 

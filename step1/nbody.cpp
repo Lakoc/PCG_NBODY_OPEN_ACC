@@ -39,9 +39,9 @@ void calculate_gravitation_velocity(const Particles &p,
         float p1_pos_z = p.pos_z[p1_index];
 
         // Init aux velocity vector and other aux variables
-        float v_temp_x = .0f;
-        float v_temp_y = .0f;
-        float v_temp_z = .0f;
+        float v_temp_x = 0.0f;
+        float v_temp_y = 0.0f;
+        float v_temp_z = 0.0f;
 
         float dx, dy, dz, ir3, Fg_dt_m2_r;
 // Loop over other particles to keep p1 data cached and avoid global memory access
@@ -52,6 +52,7 @@ void calculate_gravitation_velocity(const Particles &p,
             float p2_pos_y = p.pos_y[p2_index];
             float p2_pos_z = p.pos_z[p2_index];
             float p2_weight = p.weight[p2_index];
+
             // Calculate per axis distance
             // Reverted order to save up 1 more unary operation (-G  -> G)
             dx = p2_pos_x - p1_pos_x;
@@ -84,7 +85,7 @@ void calculate_collision_velocity(const Particles &p,
                                   const int N,
                                   const float dt) {
 
-#pragma acc parallel loop  present(p, tmp_vel) gang, worker, vector
+#pragma acc parallel loop  present(p, tmp_vel) gang worker vector
     for (unsigned p1_index = 0; p1_index < N; p1_index++) {
         // Load particle_1 positions, velocities and weight
         float p1_pos_x = p.pos_x[p1_index];
@@ -96,11 +97,9 @@ void calculate_collision_velocity(const Particles &p,
         float p1_weight = p.weight[p1_index];
 
         // Init aux velocity vector and other aux variables
-        float v_temp_x = .0f;
-        float v_temp_y = .0f;
-        float v_temp_z = .0f;
-
-        bool colliding;
+        float v_temp_x = 0.0f;
+        float v_temp_y = 0.0f;
+        float v_temp_z = 0.0f;
 
         float r, dx, dy, dz, weight_difference, weight_sum, double_m2;
 #pragma acc loop seq
@@ -115,31 +114,25 @@ void calculate_collision_velocity(const Particles &p,
             float p2_weight = p.weight[p2_index];
 
             // Calculate per axis distance
-            // Reverted order to save up 1 more unary operation (-G  -> G)
-            dx = p2_pos_x - p1_pos_x;
-            dy = p2_pos_y - p1_pos_y;
-            dz = p2_pos_z - p1_pos_z;
+            dx = p1_pos_x - p2_pos_x;
+            dy = p1_pos_y - p2_pos_y;
+            dz = p1_pos_z - p2_pos_z;
 
-            // Calculate inverse of Euclidean distance pow3
-            r = sqrt(dx * dx + dy * dy + dz * dz) + FLT_MIN;
+            // Calculate Euclidean distance
+            r = sqrtf(dx * dx + dy * dy + dz * dz);
 
-            // Save values below to registers to save accesses to memory and multiple calculations of same code
-            weight_difference = p1_weight - p2_weight;
-            weight_sum = p1_weight + p2_weight;
-            double_m2 = p2_weight * 2.0f;
+            // Since there are usually not many collision, if branch is faster than ternary
+            if (r > 0.0f && r < COLLISION_DISTANCE) {
+                // Save values below to registers to save accesses to memory and multiple calculations of same code
+                weight_difference = p1_weight - p2_weight;
+                weight_sum = p1_weight + p2_weight;
+                double_m2 = p2_weight * 2.0f;
 
-            // Inverse condition, inverse distance is equal to infinity if it's calculated between same point
-            colliding = r < COLLISION_DISTANCE;
-
-
-            // If colliding add to temporal vector current velocities
-            // Application of distributive law of *,+ operations in Real field => p1.weight* p1.vel_x - p2.weight *p1.vel_x  - > p1.vel_x * (weight_difference)
-            v_temp_x += colliding ? ((p1_vel_x * weight_difference + double_m2 * p2_vel_x) / weight_sum) - p1_vel_x
-                                  : 0.0f;
-            v_temp_y+= colliding ? ((p1_vel_y * weight_difference + double_m2 * p2_vel_y) / weight_sum) - p1_vel_y
-                                  : 0.0f;
-            v_temp_z += colliding ? ((p1_vel_z * weight_difference + double_m2 * p2_vel_z) / weight_sum) - p1_vel_z
-                                  : 0.0f;
+                // Application of distributive law of *,+ operations in Real field => p1.weight* p1.vel_x - p2.weight *p1.vel_x  - > p1.vel_x * (weight_difference)
+                v_temp_x += ((p1_vel_x * weight_difference + double_m2 * p2_vel_x) / weight_sum) - p1_vel_x;
+                v_temp_y += ((p1_vel_y * weight_difference + double_m2 * p2_vel_y) / weight_sum) - p1_vel_y;
+                v_temp_z += ((p1_vel_z * weight_difference + double_m2 * p2_vel_z) / weight_sum) - p1_vel_z;
+            }
         }
 
         // Update values in global context

@@ -53,9 +53,7 @@ int main(int argc, char **argv) {
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     // 1.  Memory allocation on CPU
-    Particles particles = Particles(N);
-    Velocities tmp_velocities = Velocities(N);
-
+    Particles particles_curr = Particles(N);
     // 2. Create memory descriptor
     /*
      * Caution! Create only after CPU side allocation
@@ -65,13 +63,13 @@ int main(int argc, char **argv) {
      *                                    in floats, not bytes        not bytes
     */
     MemDesc md(
-            particles.pos_x, 1, 0,            // Position in X
-            particles.pos_y, 1, 0,            // Position in Y
-            particles.pos_z, 1, 0,            // Position in Z
-            particles.vel_x, 1, 0,            // Velocity in X
-            particles.vel_y, 1, 0,            // Velocity in Y
-            particles.vel_z, 1, 0,            // Velocity in Z
-            particles.weight, 1, 0,            // Weight
+            particles_curr.pos_x, 1, 0,            // Position in X
+            particles_curr.pos_y, 1, 0,            // Position in Y
+            particles_curr.pos_z, 1, 0,            // Position in Z
+            particles_curr.vel_x, 1, 0,            // Velocity in X
+            particles_curr.vel_y, 1, 0,            // Velocity in Y
+            particles_curr.vel_z, 1, 0,            // Velocity in Z
+            particles_curr.weight, 1, 0,            // Weight
             N,                                                                // Number of particles
             recordsNum);                                                      // Number of records in output file
 
@@ -89,7 +87,10 @@ int main(int argc, char **argv) {
     }
 
     // 3. Copy data to GPU
-    particles.copyToGPU();
+    Particles particles_next = particles_curr;
+
+    particles_curr.copyToGPU();
+    particles_next.copyToGPU();
 
     // Start the time
     auto startTime = std::chrono::high_resolution_clock::now();
@@ -98,9 +99,8 @@ int main(int argc, char **argv) {
 
     // 4. Run the loop - calculate new Particle positions.
     for (int s = 0; s < steps; s++) {
-        calculate_gravitation_velocity(particles, tmp_velocities, N, dt);
-        calculate_collision_velocity(particles, tmp_velocities, N, dt);
-        update_particle(particles, tmp_velocities, N, dt);
+        calculate_velocity(s % 2 ? particles_next : particles_curr,
+                           s % 2 ? particles_curr : particles_next, N, dt);
 
         /// In step 4 - fill in the code to store Particle snapshots.
         if (writeFreq > 0 && (s % writeFreq == 0)) {
@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
 
 
     // 5. Copy data from GPU back to CPU.
-    particles.copyToCPU();
+    (steps % 2 ? particles_next : particles_curr).copyToCPU();
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

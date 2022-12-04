@@ -23,6 +23,7 @@
 #include <cstdio>
 #include  <cmath>
 #include "h5Helper.h"
+#include <cstring>
 
 /// Gravity constant
 constexpr float G = 6.67384e-11f;
@@ -82,6 +83,26 @@ struct Particles {
 #pragma acc enter data create(pos_x[0:p_count], pos_y[0:p_count], pos_z[0:p_count], vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count], weight[0:p_count])
     }
 
+    Particles(const Particles &p) {
+        p_count = p.p_count;
+
+        pos_x = new float[p_count];
+        pos_y = new float[p_count];
+        pos_z = new float[p_count];
+        vel_x = new float[p_count];
+        vel_y = new float[p_count];
+        vel_z = new float[p_count];
+        weight = new float[p_count];
+
+        size_t arr_byte_size = sizeof(float) * p_count;
+
+        std::memcpy(weight, p.weight, arr_byte_size);
+
+#pragma acc enter data copyin(this)
+#pragma acc enter data copyin(weight[0:p_count])
+#pragma acc enter data create(pos_x[0:p_count], pos_y[0:p_count], pos_z[0:p_count], vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count])
+    }
+
     ~Particles() {
 #pragma acc exit data delete(pos_x, pos_y, pos_z, vel_x, vel_y, vel_z, weight)
 #pragma acc exit data delete(this)
@@ -106,71 +127,16 @@ struct Particles {
 //----------------------------------------------------------------------------------------------------------------------
 
 /**
- * @struct Velocities
- * Velocities of the particles
- */
-struct Velocities {
-    // Fill the structure holding the particle/s data
-    // It is recommended to implement constructor / destructor and copyToGPU and copyToCPU routines
-    float *vel_x;
-    float *vel_y;
-    float *vel_z;
-    size_t p_count;
-
-    Velocities(size_t p_count) : p_count(p_count) {
-        vel_x = new float[p_count]();
-        vel_y = new float[p_count]();
-        vel_z = new float[p_count]();
-#pragma acc enter data copyin(this)
-#pragma acc enter data create(vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count])
-    }
-
-    ~Velocities() {
-#pragma acc exit data delete(vel_x, vel_y, vel_z)
-#pragma acc exit data delete(this)
-        delete[] vel_x;
-        delete[] vel_y;
-        delete[] vel_z;
-    }
-
-};// end of Velocities
-//----------------------------------------------------------------------------------------------------------------------
-
-/**
- * Compute gravitation velocity
- * @param [in]  p        - Particles
- * @param [out] tmp_vel  - Temporal velocity
+ * Compute velocity
+ * @param [in]  p_curr        - Particles current
+ * @param [out] p_next  - Particles next
  * @param [in ] N        - Number of particles
  * @param [in]  dt       - Time step size
  */
-void calculate_gravitation_velocity(const Particles &p,
-                                    Velocities &tmp_vel,
-                                    const int N,
-                                    const float dt);
-
-/**
- * Calculate collision velocity
- * @param [in]  p        - Particles
- * @param [out] tmp_vel  - Temporal velocity
- * @param [in ] N        - Number of particles
- * @param [in]  dt       - Time step size
- */
-void calculate_collision_velocity(const Particles &p,
-                                  Velocities &tmp_vel,
-                                  const int N,
-                                  const float dt);
-
-/**
- * Update particle position
- * @param [in]  p        - Particles
- * @param [out] tmp_vel  - Temporal velocity
- * @param [in ] N        - Number of particles
- * @param [in]  dt       - Time step size
- */
-void update_particle(Particles &p,
-                     Velocities &tmp_vel,
-                     const int N,
-                     const float dt);
+void calculate_velocity(const Particles &p_curr,
+                        Particles &p_next,
+                        const int N,
+                        const float dt);
 
 
 /**

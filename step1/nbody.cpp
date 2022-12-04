@@ -59,7 +59,7 @@ void calculate_gravitation_velocity(const Particles &p,
             dy = p2_pos_y - p1_pos_y;
             dz = p2_pos_z - p1_pos_z;
 
-            // Calculate inverse of Euclidean distance pow3
+            // Calculate inverse of Euclidean distance pow3, could be applied since 1. operand is always positive
             ir3 = powf(dx * dx + dy * dy + dz * dz, INVERSE_SQRT_POW3) + FLT_MIN;
 
             // Simplified from CPU implementation

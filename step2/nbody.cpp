@@ -25,18 +25,22 @@
 //                                  If necessary, add your own classes / routines                                     //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Compute gravitation velocity
-void calculate_gravitation_velocity(const Particles &p,
-                                    Velocities &tmp_vel,
-                                    const int N,
-                                    const float dt) {
+/// Compute velocity
+void calculate_velocity(const Particles &p_curr,
+                        Particles &p_next,
+                        const int N,
+                        const float dt) {
 // Loop over all particles
-#pragma acc parallel loop  present(p, tmp_vel) gang, worker, vector
+#pragma acc parallel loop  present(p_curr, p_next) gang, worker, vector
     for (unsigned p1_index = 0; p1_index < N; p1_index++) {
-        // Load particle_1 positions
-        float p1_pos_x = p.pos_x[p1_index];
-        float p1_pos_y = p.pos_y[p1_index];
-        float p1_pos_z = p.pos_z[p1_index];
+        // Load particle_1 data
+        float p1_pos_x = p_curr.pos_x[p1_index];
+        float p1_pos_y = p_curr.pos_y[p1_index];
+        float p1_pos_z = p_curr.pos_z[p1_index];
+        float p1_vel_x = p_curr.vel_x[p1_index];
+        float p1_vel_y = p_curr.vel_y[p1_index];
+        float p1_vel_z = p_curr.vel_z[p1_index];
+        float p1_weight = p_curr.weight[p1_index];
 
         // Init aux velocity vector and other aux variables
         float v_temp_x = 0.0f;
@@ -44,14 +48,16 @@ void calculate_gravitation_velocity(const Particles &p,
         float v_temp_z = 0.0f;
 
         float dx, dy, dz, ir3, Fg_dt_m2_r;
+
+        bool not_colliding;
 // Loop over other particles to keep p1 data cached and avoid global memory access
 #pragma acc loop seq
         for (unsigned p2_index = 0; p2_index < N; p2_index++) {
-            // Load particle_2 positions and weight
-            float p2_pos_x = p.pos_x[p2_index];
-            float p2_pos_y = p.pos_y[p2_index];
-            float p2_pos_z = p.pos_z[p2_index];
-            float p2_weight = p.weight[p2_index];
+            // Load particle_2 data
+            float p2_pos_x = p_curr.pos_x[p2_index];
+            float p2_pos_y = p_curr.pos_y[p2_index];
+            float p2_pos_z = p_curr.pos_z[p2_index];
+            float p2_weight = p_curr.weight[p2_index];
 
             // Calculate per axis distance
             // Reverted order to save up 1 more unary operation (-G  -> G)
@@ -59,109 +65,121 @@ void calculate_gravitation_velocity(const Particles &p,
             dy = p2_pos_y - p1_pos_y;
             dz = p2_pos_z - p1_pos_z;
 
-            // Calculate inverse of Euclidean distance pow3
-            ir3 = powf(dx * dx + dy * dy + dz * dz, INVERSE_SQRT_POW3) + FLT_MIN;
-
-            // Simplified from CPU implementation
+            // Calculate inverse of Euclidean distance pow3, could be applied since 1. operand is always positive
+            ir3 = powf(dx * dx + dy * dy + dz * dz, INVERSE_SQRT_POW3);
             Fg_dt_m2_r = G * dt * ir3 * p2_weight;
 
-            bool not_colliding = ir3 < COLLISION_DISTANCE_INVERSE_POW3;
-
-            // If there is no collision, add local velocities to temporal vector
+            not_colliding = ir3 < COLLISION_DISTANCE_INVERSE_POW3;
             v_temp_x += not_colliding ? Fg_dt_m2_r * dx : 0.0f;
             v_temp_y += not_colliding ? Fg_dt_m2_r * dy : 0.0f;
             v_temp_z += not_colliding ? Fg_dt_m2_r * dz : 0.0f;
-        }
-
-        tmp_vel.vel_x[p1_index] = v_temp_x;
-        tmp_vel.vel_y[p1_index] = v_temp_y;
-        tmp_vel.vel_z[p1_index] = v_temp_z;
-    }
-}// end of calculate_gravitation_velocity
-//----------------------------------------------------------------------------------------------------------------------
-
-void calculate_collision_velocity(const Particles &p,
-                                  Velocities &tmp_vel,
-                                  const int N,
-                                  const float dt) {
-
-#pragma acc parallel loop  present(p, tmp_vel) gang worker vector
-    for (unsigned p1_index = 0; p1_index < N; p1_index++) {
-        // Load particle_1 positions, velocities and weight
-        float p1_pos_x = p.pos_x[p1_index];
-        float p1_pos_y = p.pos_y[p1_index];
-        float p1_pos_z = p.pos_z[p1_index];
-        float p1_vel_x = p.vel_x[p1_index];
-        float p1_vel_y = p.vel_y[p1_index];
-        float p1_vel_z = p.vel_z[p1_index];
-        float p1_weight = p.weight[p1_index];
-
-        // Init aux velocity vector and other aux variables
-        float v_temp_x = 0.0f;
-        float v_temp_y = 0.0f;
-        float v_temp_z = 0.0f;
-
-        float r, dx, dy, dz, weight_difference, weight_sum, double_m2;
-#pragma acc loop seq
-        for (unsigned p2_index = 0; p2_index < N; p2_index++) {
-            // Load particle_2 positions and weight
-            float p2_pos_x = p.pos_x[p2_index];
-            float p2_pos_y = p.pos_y[p2_index];
-            float p2_pos_z = p.pos_z[p2_index];
-            float p2_vel_x = p.vel_x[p2_index];
-            float p2_vel_y = p.vel_y[p2_index];
-            float p2_vel_z = p.vel_z[p2_index];
-            float p2_weight = p.weight[p2_index];
-
-            // Calculate per axis distance
-            dx = p1_pos_x - p2_pos_x;
-            dy = p1_pos_y - p2_pos_y;
-            dz = p1_pos_z - p2_pos_z;
-
-            // Calculate Euclidean distance
-            r = sqrtf(dx * dx + dy * dy + dz * dz);
 
             // Since there are usually not many collision, if branch is faster than ternary
-            if (r > 0.0f && r < COLLISION_DISTANCE) {
-                // Save values below to registers to save accesses to memory and multiple calculations of same code
-                weight_difference = p1_weight - p2_weight;
-                weight_sum = p1_weight + p2_weight;
-                double_m2 = p2_weight * 2.0f;
+            if (ir3 >= COLLISION_DISTANCE_INVERSE_POW3 && p1_index != p2_index) {
+                float weight_sum = p1_weight + p2_weight;
+                float m1_ratio = p1_weight / weight_sum;
+                float m2_ratio = 1 - m1_ratio;
+                float p1_vel_ratio = m1_ratio - m2_ratio - 1;
+                float double_m2_ratio = 2 * m2_ratio;
+                float p2_vel_x = p_curr.vel_x[p2_index];
+                float p2_vel_y = p_curr.vel_y[p2_index];
+                float p2_vel_z = p_curr.vel_z[p2_index];
 
-                // Application of distributive law of *,+ operations in Real field => p1.weight* p1.vel_x - p2.weight *p1.vel_x  - > p1.vel_x * (weight_difference)
-                v_temp_x += ((p1_vel_x * weight_difference + double_m2 * p2_vel_x) / weight_sum) - p1_vel_x;
-                v_temp_y += ((p1_vel_y * weight_difference + double_m2 * p2_vel_y) / weight_sum) - p1_vel_y;
-                v_temp_z += ((p1_vel_z * weight_difference + double_m2 * p2_vel_z) / weight_sum) - p1_vel_z;
+                v_temp_x += p1_vel_x * p1_vel_ratio + double_m2_ratio * p2_vel_x;
+                v_temp_y += p1_vel_y * p1_vel_ratio + double_m2_ratio * p2_vel_y;
+                v_temp_z += p1_vel_z * p1_vel_ratio + double_m2_ratio * p2_vel_z;
             }
+
         }
 
-        // Update values in global context
-        tmp_vel.vel_x[p1_index] += v_temp_x;
-        tmp_vel.vel_y[p1_index] += v_temp_y;
-        tmp_vel.vel_z[p1_index] += v_temp_z;
+        // Update locally
+        p1_vel_x = p1_vel_x + v_temp_x;
+        p1_vel_y = p1_vel_y + v_temp_y;
+        p1_vel_z = p1_vel_z + v_temp_z;
+
+        // Flush to global mem
+        p_next.vel_x[p1_index] = p1_vel_x;
+        p_next.vel_y[p1_index] = p1_vel_y;
+        p_next.vel_z[p1_index] = p1_vel_z;
+
+        // Update_positions
+        p_next.pos_x[p1_index] = p1_pos_x + p1_vel_x * dt;
+        p_next.pos_y[p1_index] = p1_pos_y + p1_vel_y * dt;
+        p_next.pos_z[p1_index] = p1_pos_z + p1_vel_z * dt;
     }
-}// end of calculate_collision_velocity
+}// end of calculate_velocity
 //----------------------------------------------------------------------------------------------------------------------
 
-/// Update particle position
-void update_particle(Particles &p,
-                     Velocities &tmp_vel,
-                     const int N,
-                     const float dt) {
-#pragma acc parallel loop present(p, tmp_vel)
-    for (unsigned i = 0; i < N; i++) {
-        p.vel_x[i] += tmp_vel.vel_x[i];
-        p.vel_y[i] += tmp_vel.vel_y[i];
-        p.vel_z[i] += tmp_vel.vel_z[i];
-        p.pos_x[i] += p.vel_x[i] * dt;
-        p.pos_y[i] += p.vel_y[i] * dt;
-        p.pos_z[i] += p.vel_z[i] * dt;
-    }
-
-
-}// end of update_particle
-//----------------------------------------------------------------------------------------------------------------------
-
+//
+///// Compute velocity
+//void calculate_velocity(const Particles &p_in,
+//                        Particles &p_out,
+//                        const int N,
+//                        const float dt) {
+//
+//
+//
+//#pragma acc parallel loop present(p_in, p_out) gang worker vector
+//    for (unsigned int i = 0; i < N; i++) {
+//        /// Initialise of auxiliary accumulators of velocity
+//        float tmp_vel_x = 0.0f;
+//        float tmp_vel_y = 0.0f;
+//        float tmp_vel_z = 0.0f;
+//
+//
+//#pragma acc loop seq
+//        /// The iterations over all particles to compute the gravitation velocity to them
+//        for (int j = 0; j < N; j++) {
+//
+//            /// Instruction Level Parallelism
+//            /// Computes the distance between the relevant particles
+//            float dx = p_in.pos_x[j] - p_in.pos_x[i];
+//            float dy = p_in.pos_y[j] - p_in.pos_y[i];
+//            float dz = p_in.pos_z[j] - p_in.pos_z[i];
+//
+//            /// Computes inverse distance between particles and their distances
+//            float ir3 = powf(dx * dx + dy * dy + dz * dz, INVERSE_SQRT_POW3);
+//            /// Computes the gravitation velocity (Fg_dt_m2_r)
+//            float Fg_dt_m2_r = G * dt * ir3 * p_in.weight[j];
+//            bool colliding = i!=j && ir3 >= COLLISION_DISTANCE_INVERSE_POW3;
+//            bool not_colliding = ir3 < COLLISION_DISTANCE_INVERSE_POW3;
+//
+//
+//            /// The speed that a particle body receives due to the strength of the relevant particle
+//            tmp_vel_x += not_colliding ? Fg_dt_m2_r * dx : 0.0f;
+//            tmp_vel_y += not_colliding ? Fg_dt_m2_r * dy : 0.0f;
+//            tmp_vel_z += not_colliding ? Fg_dt_m2_r * dz : 0.0f;
+//
+//            /// Checks whether the particles are in the sufficient near distance for collision
+//            if (colliding) {
+//                /// Computes the temporary partial results to eliminate recalculation
+//                float weight_diff = p_in.weight[i] - p_in.weight[j];
+//                float weight_sum = p_in.weight[i] + p_in.weight[j];
+//                float weight_j_x_2 = 2 * p_in.weight[j];
+//
+//                /// Computes the collision velocities between the relevant particles and accumulate the results
+//                tmp_vel_x +=
+//                        ((weight_diff * p_in.vel_x[i] + weight_j_x_2 * p_in.vel_x[j]) / weight_sum) - p_in.vel_x[i];
+//                tmp_vel_y +=
+//                        ((weight_diff * p_in.vel_y[i] + weight_j_x_2 * p_in.vel_y[j]) / weight_sum) - p_in.vel_y[i];
+//                tmp_vel_z +=
+//                        ((weight_diff * p_in.vel_z[i] + weight_j_x_2 * p_in.vel_z[j]) / weight_sum) - p_in.vel_z[i];
+//            }
+//        }
+//
+//        /// Updates the velocity of particles with respect to the computed gravitation and collision velocity
+//        p_out.vel_x[i] = p_in.vel_x[i] + tmp_vel_x;
+//        p_out.vel_y[i] = p_in.vel_y[i] + tmp_vel_y;
+//        p_out.vel_z[i] = p_in.vel_z[i] + tmp_vel_z;
+//
+//        /// Updates the positions of particles with respect to the updated velocity
+//        p_out.pos_x[i] = p_in.pos_x[i] + (p_in.vel_x[i] + tmp_vel_x) * dt;
+//        p_out.pos_y[i] = p_in.pos_y[i] + (p_in.vel_y[i] + tmp_vel_y) * dt;
+//        p_out.pos_z[i] = p_in.pos_z[i] + (p_in.vel_z[i] + tmp_vel_z) * dt;
+//
+//    }
+//}// end of calculate_velocity
+////----------------------------------------------------------------------------------------------------------------------
 
 
 /// Compute center of gravity

@@ -31,7 +31,7 @@ void calculate_velocity(const Particles &p_curr,
                         const int N,
                         const float dt) {
 // Loop over all particles
-#pragma acc parallel loop  present(p_curr, p_next) gang, worker, vector
+#pragma acc parallel loop  present(p_curr, p_next) gang worker vector
     for (unsigned p1_index = 0; p1_index < N; p1_index++) {
         // Load particle_1 data
         float p1_pos_x = p_curr.pos_x[p1_index];

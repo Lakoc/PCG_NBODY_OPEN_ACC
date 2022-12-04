@@ -31,7 +31,7 @@ void calculate_gravitation_velocity(const Particles &p,
                                     const int N,
                                     const float dt) {
 // Loop over all particles
-#pragma acc parallel loop  present(p, tmp_vel) gang, worker, vector
+#pragma acc parallel loop  present(p, tmp_vel) gang worker vector
     for (unsigned p1_index = 0; p1_index < N; p1_index++) {
         // Load particle_1 positions
         float p1_pos_x = p.pos_x[p1_index];
@@ -148,7 +148,7 @@ void update_particle(Particles &p,
                      Velocities &tmp_vel,
                      const int N,
                      const float dt) {
-#pragma acc parallel loop present(p, tmp_vel)
+#pragma acc parallel loop present(p, tmp_vel) gang worker vector
     for (unsigned i = 0; i < N; i++) {
         p.vel_x[i] += tmp_vel.vel_x[i];
         p.vel_y[i] += tmp_vel.vel_y[i];

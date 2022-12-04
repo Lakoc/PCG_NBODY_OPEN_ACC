@@ -113,8 +113,7 @@ int main(int argc, char **argv) {
     }// for s ...
 
     // 5. In steps 3 and 4 -  Compute center of gravity
-    float4 comOnGPU = {0.0f, 0.0f, 0.0f, 0.f};
-
+    float4 comOnGPU = centerOfMassGPU((steps % 2 ? particles_next : particles_curr), N);
 
 
     // Stop watchclock

@@ -76,18 +76,17 @@ void calculate_velocity(const Particles &p_curr,
 
             // Since there are usually not many collision, if branch is faster than ternary
             if (ir3 >= COLLISION_DISTANCE_INVERSE_POW3 && p1_index != p2_index) {
-                float weight_sum = p1_weight + p2_weight;
-                float m1_ratio = p1_weight / weight_sum;
-                float m2_ratio = 1 - m1_ratio;
-                float p1_vel_ratio = m1_ratio - m2_ratio - 1;
-                float double_m2_ratio = 2 * m2_ratio;
+                float p1_weight_ratio = p1_weight / (p1_weight + p2_weight);
+                float p2_weight_ratio = 1 - p1_weight_ratio;
+                float p1_vel_ratio = p1_weight_ratio - p2_weight_ratio - 1;
+                float double_p2_weight_ratio = 2 * p2_weight_ratio;
                 float p2_vel_x = p_curr.vel_x[p2_index];
                 float p2_vel_y = p_curr.vel_y[p2_index];
                 float p2_vel_z = p_curr.vel_z[p2_index];
 
-                v_temp_x += p1_vel_x * p1_vel_ratio + double_m2_ratio * p2_vel_x;
-                v_temp_y += p1_vel_y * p1_vel_ratio + double_m2_ratio * p2_vel_y;
-                v_temp_z += p1_vel_z * p1_vel_ratio + double_m2_ratio * p2_vel_z;
+                v_temp_x += p1_vel_x * p1_vel_ratio + double_p2_weight_ratio * p2_vel_x;
+                v_temp_y += p1_vel_y * p1_vel_ratio + double_p2_weight_ratio * p2_vel_y;
+                v_temp_z += p1_vel_z * p1_vel_ratio + double_p2_weight_ratio * p2_vel_z;
             }
 
         }

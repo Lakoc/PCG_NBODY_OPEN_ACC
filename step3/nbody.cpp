@@ -112,19 +112,19 @@ void calculate_velocity(const Particles &p_curr,
 /// Compute center of gravity
 float4 centerOfMassGPU(const Particles &p,
                        const int N) {
-    float sum_pos_x = 0.0f;
-    float sum_pos_y = 0.0f;
-    float sum_pos_z = 0.0f;
+    float weighted_sum_pos_x = 0.0f;
+    float weighted_sum_pos_y = 0.0f;
+    float weighted_sum_pos_z = 0.0f;
     float com_w = 0.0f;
-#pragma acc parallel loop copy(sum_pos_x, sum_pos_y, sum_pos_z, com_w) present(p)  reduction(+:sum_pos_x, sum_pos_y, sum_pos_z, com_w) gang worker vector
+#pragma acc parallel loop copy(weighted_sum_pos_x, weighted_sum_pos_y, weighted_sum_pos_z, com_w) present(p)  reduction(+:weighted_sum_pos_x, weighted_sum_pos_y, weighted_sum_pos_z, com_w) gang worker vector
     for (unsigned particle_index = 0; particle_index < N; particle_index++) {
         float particle_weight = p.weight[particle_index];
-        sum_pos_x += p.pos_x[particle_index] * particle_weight;
-        sum_pos_y += p.pos_y[particle_index] * particle_weight;
-        sum_pos_z += p.pos_z[particle_index] * particle_weight;
+        weighted_sum_pos_x += p.pos_x[particle_index] * particle_weight;
+        weighted_sum_pos_y += p.pos_y[particle_index] * particle_weight;
+        weighted_sum_pos_z += p.pos_z[particle_index] * particle_weight;
         com_w += particle_weight;
     }
-    return {sum_pos_x / com_w, sum_pos_y / com_w, sum_pos_z / com_w, com_w};
+    return {weighted_sum_pos_x / com_w, weighted_sum_pos_y / com_w, weighted_sum_pos_z / com_w, com_w};
 }// end of centerOfMassGPU
 //----------------------------------------------------------------------------------------------------------------------
 

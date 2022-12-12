@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -q qgpu
-#PBS -A OPEN-24-47
+#PBS -A DD-22-68
 #PBS -l select=1:ngpus=1
-#PBS -l walltime=4:00:00
+#PBS -l walltime=1:00:00
 #PBS -l nsys=True
 #PBS -N PCG-NBODY-OPENACC
 

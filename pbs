@@ -1,2 +1,2 @@
 STEP=step1
-qsub -o $STEP/output.txt -e $STEP/error.txt run.sh $STEP
+qsub -v STEP=$STEP -o $STEP/output.txt -e $STEP/error.txt run.sh

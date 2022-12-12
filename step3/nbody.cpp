@@ -116,7 +116,7 @@ float4 centerOfMassGPU(const Particles &p,
     float weighted_sum_pos_y = 0.0f;
     float weighted_sum_pos_z = 0.0f;
     float com_w = 0.0f;
-#pragma acc parallel loop copy(weighted_sum_pos_x, weighted_sum_pos_y, weighted_sum_pos_z, com_w) present(p)  reduction(+:weighted_sum_pos_x, weighted_sum_pos_y, weighted_sum_pos_z, com_w) gang worker vector
+#pragma acc parallel loop present(p) reduction(+:weighted_sum_pos_x, weighted_sum_pos_y, weighted_sum_pos_z, com_w) gang worker vector
     for (unsigned particle_index = 0; particle_index < N; particle_index++) {
         float particle_weight = p.weight[particle_index];
         weighted_sum_pos_x += p.pos_x[particle_index] * particle_weight;

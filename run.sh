@@ -1,5 +1,5 @@
 #!/bin/bash
-#PBS -q qgpu -A DD-22-68 -l select=1:ngpus=1 -l walltime=1:00:00 l nsys=True -I
+#PBS -q qgpu
 #PBS -A DD-22-68
 #PBS -l select=1:ngpus=1
 #PBS -l walltime=1:00:00

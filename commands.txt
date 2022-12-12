@@ -1,0 +1,4 @@
+STEP=step1
+qsub -v STEP=$STEP -o $STEP/output.txt -e $STEP/error.txt run.sh
+
+cat output.txt | grep Time | tail -n 32 | sed -n 'p;n'

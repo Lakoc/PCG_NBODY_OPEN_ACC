@@ -31,7 +31,7 @@ void calculate_velocity(const Particles &p_curr,
                         const int N,
                         const float dt) {
 // Loop over all particles
-#pragma acc parallel loop  present(p_curr, p_next) gang worker vector async(1)
+#pragma acc parallel loop  present(p_curr, p_next) gang worker vector async(VEL_STREAM)
     for (unsigned p1_index = 0; p1_index < N; p1_index++) {
         // Load particle_1 data
         float p1_pos_x = p_curr.pos_x[p1_index];
@@ -116,7 +116,7 @@ float4 centerOfMassGPU(const Particles &p,
     float weighted_sum_pos_y = 0.0f;
     float weighted_sum_pos_z = 0.0f;
     float com_w = 0.0f;
-#pragma acc parallel loop copy(weighted_sum_pos_x, weighted_sum_pos_y, weighted_sum_pos_z, com_w) present(p)  reduction(+:weighted_sum_pos_x, weighted_sum_pos_y, weighted_sum_pos_z, com_w) gang worker vector
+#pragma acc parallel loop  present(p)  reduction(+:weighted_sum_pos_x, weighted_sum_pos_y, weighted_sum_pos_z, com_w) gang worker vector async(COM_STREAM)
     for (unsigned particle_index = 0; particle_index < N; particle_index++) {
         float particle_weight = p.weight[particle_index];
         weighted_sum_pos_x += p.pos_x[particle_index] * particle_weight;
@@ -124,6 +124,7 @@ float4 centerOfMassGPU(const Particles &p,
         weighted_sum_pos_z += p.pos_z[particle_index] * particle_weight;
         com_w += particle_weight;
     }
+#pragma acc wait(COM_STREAM)
     return {weighted_sum_pos_x / com_w, weighted_sum_pos_y / com_w, weighted_sum_pos_z / com_w, com_w};
 }// end of centerOfMassGPU
 //----------------------------------------------------------------------------------------------------------------------

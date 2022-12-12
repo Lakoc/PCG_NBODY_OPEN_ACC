@@ -96,24 +96,31 @@ int main(int argc, char **argv) {
     auto startTime = std::chrono::high_resolution_clock::now();
 
 
-
+    float4 comOnGPULoop = {0.0f, 0.0f, 0.0f, 0.f};
     // 4. Run the loop - calculate new Particle positions.
     for (int s = 0; s < steps; s++) {
+#pragma acc wait(VEL_STREAM)
+        comOnGPULoop = centerOfMassGPU((steps % 2 ? particles_next : particles_curr), N);
+
+
         calculate_velocity(s % 2 ? particles_next : particles_curr,
                            s % 2 ? particles_curr : particles_next, N, dt);
-
-        centerOfMassGPU((steps % 2 ? particles_next : particles_curr), N);
 
         /// In step 4 - fill in the code to store Particle snapshots.
         if (writeFreq > 0 && (s % writeFreq == 0)) {
 
             (steps % 2 ? particles_next : particles_curr).copyToCPU();
 
+            // since memory descriptor is attached to curr arr, there is need to copy values to properly calculate COM on CPU
+            if (steps % 2 > 0) {
+                particles_curr.copy(particles_next);
+            }
+
             h5Helper.writeParticleData(s / writeFreq);
-            h5Helper.writeCom(comOnGPU.x, comOnGPU.y, comOnGPU.z, comOnGPU.w, s / writeFreq);
+            h5Helper.writeCom(comOnGPULoop.x, comOnGPULoop.y, comOnGPULoop.z, comOnGPULoop.w, s / writeFreq);
         }
     }// for s ...
-
+#pragma acc wait
     // 5. In steps 3 and 4 -  Compute center of gravity
     float4 comOnGPU = centerOfMassGPU((steps % 2 ? particles_next : particles_curr), N);
 
@@ -125,8 +132,8 @@ int main(int argc, char **argv) {
 
 
     // 5. Copy data from GPU back to CPU.
-
     (steps % 2 ? particles_next : particles_curr).copyToCPU();
+
     // since memory descriptor is attached to curr arr, there is need to copy values to properly calculate COM on CPU
     if (steps % 2 > 0) {
         particles_curr.copy(particles_next);

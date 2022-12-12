@@ -25,8 +25,8 @@
 #include "h5Helper.h"
 #include <cstring>
 
-#DEFINE COM_STREAM 1
-#DEFINE VEL_STREAM 2
+#define VEL_STREAM 1
+#define COM_STREAM 2
 
 /// Gravity constant
 constexpr float G = 6.67384e-11f;
@@ -46,14 +46,6 @@ struct float4 {
     float y;
     float z;
     float w;
-
-    void copyToGPU() {
-#pragma acc update device(x, y, z, w) async(COM_STREAM)
-    }
-
-    void copyToCPU() {
-#pragma acc update host(x, y, z, w) async(COM_STREAM)
-    }
 
 };
 
@@ -127,11 +119,11 @@ struct Particles {
     }
 
     void copyToGPU() {
-#pragma acc update device(pos_x[0:p_count], pos_y[0:p_count], pos_z[0:p_count], vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count], weight[0:p_count]) async(VEL_STREAM)
+#pragma acc update device(pos_x[0:p_count], pos_y[0:p_count], pos_z[0:p_count], vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count], weight[0:p_count])
     }
 
     void copyToCPU() {
-#pragma acc update host(pos_x[0:p_count], pos_y[0:p_count], pos_z[0:p_count], vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count], weight[0:p_count]) async(VEL_STREAM)
+#pragma acc update host(pos_x[0:p_count], pos_y[0:p_count], pos_z[0:p_count], vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count], weight[0:p_count])
     }
 
     void copy(const Particles &p) {
@@ -167,8 +159,8 @@ void calculate_velocity(const Particles &p_curr,
  * @param [in] N - Number of particles
  * @return Center of Mass [x, y, z] and total weight[w]
  */
-void centerOfMassGPU(const Particles &p, float4 comOnGpu,
-                     const int N);
+float4 centerOfMassGPU(const Particles &p,
+                       const int N);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-#PBS -q qgpu
+#PBS -q qgpu -A DD-22-68 -l select=1:ngpus=1 -l walltime=1:00:00 l nsys=True -I
 #PBS -A DD-22-68
 #PBS -l select=1:ngpus=1
 #PBS -l walltime=1:00:00
@@ -19,6 +19,7 @@ ml HDF5/1.12.1-NVHPC-22.2
 STEP=step1
 echo $STEP
 cd $PROJECT_DIR/$STEP
+make clean
 make
 make run
 make check_output
@@ -28,8 +29,8 @@ make check_output
 for i in {10..25}
 do
     n=$(bc <<< "5 * $i * 512")
-    ./nbody $n 0.01f 500 20 ../commons/$n.h5 /dev/null
-    $profile --export ./profile$i ./nbody $n 0.01f 500 20 ../commons/$n.h5 /dev/null
+    ./nbody $n 0.01f 1 20 ../commons/$n.h5 /dev/null
+    $profile --export ./profile$i ./nbody $n 0.01f 1 20 ../commons/$n.h5 /dev/null
 done
 
 cd $PROJECT_DIR/tests
@@ -37,7 +38,7 @@ python3 -m venv py-test-env
 
 source py-test-env/bin/activate
 python3 -m pip install h5py
-./run_tests.sh $PROJECT_DIR/$STEP
-
+./tests.sh $PROJECT_DIR/$STEP
+deactivate
 
 date

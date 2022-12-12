@@ -16,7 +16,7 @@ ml NVHPC/22.2
 ml HDF5/1.12.1-NVHPC-22.2
 
 
-STEP=step1
+STEP=$1
 echo $STEP
 cd $PROJECT_DIR/$STEP
 make clean

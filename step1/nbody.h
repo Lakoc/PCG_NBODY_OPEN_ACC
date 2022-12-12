@@ -29,7 +29,6 @@ constexpr float G = 6.67384e-11f;
 
 /// Collision distance threshold
 constexpr float COLLISION_DISTANCE = 0.01f;
-constexpr float COLLISION_DISTANCE_INVERSE = 100.0f;
 constexpr float COLLISION_DISTANCE_INVERSE_POW3 = 1e6f;
 constexpr float INVERSE_SQRT_POW3 = -3.0 / 2.0;
 

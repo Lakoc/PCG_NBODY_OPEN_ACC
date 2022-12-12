@@ -126,6 +126,12 @@ int main(int argc, char **argv) {
     // 5. Copy data from GPU back to CPU.
     (steps % 2 ? particles_next : particles_curr).copyToCPU();
 
+    // since memory descriptor is attached to curr arr, there is need to copy values to properly calculate COM on CPU
+    if (steps % 2 > 0) {
+        particles_curr.copy(particles_next);
+    }
+
+
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// Calculate center of gravity

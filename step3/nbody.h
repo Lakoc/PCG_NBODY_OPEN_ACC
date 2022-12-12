@@ -123,6 +123,17 @@ struct Particles {
 #pragma acc update host(pos_x[0:p_count], pos_y[0:p_count], pos_z[0:p_count], vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count], weight[0:p_count])
     }
 
+    void copy(const Particles &p) {
+        unsigned bytes_to_copy_per_arr = sizeof(float) * p_count;
+        memcpy(pos_x, p.pos_x, bytes_to_copy_per_arr);
+        memcpy(pos_y, p.pos_y, bytes_to_copy_per_arr);
+        memcpy(pos_z, p.pos_z, bytes_to_copy_per_arr);
+        memcpy(vel_x, p.vel_x, bytes_to_copy_per_arr);
+        memcpy(vel_y, p.vel_y, bytes_to_copy_per_arr);
+        memcpy(vel_z, p.vel_z, bytes_to_copy_per_arr);
+        memcpy(weight, p.weight, bytes_to_copy_per_arr);
+    }
+
 };// end of Particles
 //----------------------------------------------------------------------------------------------------------------------
 

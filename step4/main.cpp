@@ -102,13 +102,15 @@ int main(int argc, char **argv) {
         calculate_velocity(s % 2 ? particles_next : particles_curr,
                            s % 2 ? particles_curr : particles_next, N, dt);
 
+        centerOfMassGPU((steps % 2 ? particles_next : particles_curr), N);
+
         /// In step 4 - fill in the code to store Particle snapshots.
         if (writeFreq > 0 && (s % writeFreq == 0)) {
 
-            /*float4 comOnGPU = {0.0f, 0.0f, 0.0f, 0.f};
+            (steps % 2 ? particles_next : particles_curr).copyToCPU();
 
             h5Helper.writeParticleData(s / writeFreq);
-            h5Helper.writeCom(comOnGPU.x, comOnGPU.y, comOnGPU.z, comOnGPU.w, s / writeFreq);*/
+            h5Helper.writeCom(comOnGPU.x, comOnGPU.y, comOnGPU.z, comOnGPU.w, s / writeFreq);
         }
     }// for s ...
 
@@ -123,8 +125,8 @@ int main(int argc, char **argv) {
 
 
     // 5. Copy data from GPU back to CPU.
-    (steps % 2 ? particles_next : particles_curr).copyToCPU();
 
+    (steps % 2 ? particles_next : particles_curr).copyToCPU();
     // since memory descriptor is attached to curr arr, there is need to copy values to properly calculate COM on CPU
     if (steps % 2 > 0) {
         particles_curr.copy(particles_next);

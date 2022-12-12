@@ -1,0 +1,57 @@
+nbody.cpp:
+calculate_velocity(const Particles &, Particles &, int, float):
+     32, Generating present(p_next[:1],p_curr[:1])
+         Generating NVIDIA GPU code
+         35, #pragma acc loop gang, worker(4), vector(32) /* blockIdx.x threadIdx.y threadIdx.x */
+         55, #pragma acc loop seq
+main.cpp:
+Particles::Particles(unsigned long):
+     23, include "nbody.h"
+          84, Generating enter data create(pos_z[:p_count],weight[:p_count],vel_z[:p_count],vel_y[:p_count],vel_x[:p_count])
+              Generating enter data copyin(this[:1])
+              Generating enter data create(pos_y[:p_count],pos_x[:p_count])
+Particles::Particles(const Particles&):
+     23, include "nbody.h"
+         104, Generating enter data create(pos_z[:p_count])
+              Generating enter data copyin(weight[:p_count])
+              Generating enter data create(vel_z[:p_count],vel_y[:p_count],vel_x[:p_count])
+              Generating enter data copyin(this[:1])
+              Generating enter data create(pos_y[:p_count],pos_x[:p_count])
+Particles::~Particles():
+     23, include "nbody.h"
+         109, Generating exit data delete(weight[:1],vel_z[:1],vel_y[:1],vel_x[:1],this[:1],pos_y[:1],pos_x[:1],pos_z[:1])
+Particles::copyToGPU():
+     23, include "nbody.h"
+         120, Generating update device(weight[:p_count],vel_z[:p_count],vel_y[:p_count],vel_x[:p_count],pos_z[:p_count],pos_y[:p_count],pos_x[:p_count])
+Particles::copyToCPU():
+     23, include "nbody.h"
+         124, Generating update self(weight[:p_count],vel_z[:p_count],vel_y[:p_count],vel_x[:p_count],pos_z[:p_count],pos_y[:p_count],pos_x[:p_count])
+std::vector<float *, std::allocator<float *>>::vector(const std::vector<float *, std::allocator<float *>>&):
+     23, include "nbody.h"
+std::vector<unsigned long, std::allocator<unsigned long>>::vector(const std::vector<unsigned long, std::allocator<unsigned long>>&):
+     23, include "nbody.h"
+std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>::basic_string(const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>&):
+     23, include "nbody.h"
+std::basic_ostream<T1, T2> & std::endl<char, std::char_traits<char>>(std::basic_ostream<T1, T2> &):
+     23, include "nbody.h"
+__gnu_cxx::__enable_if<std::__is_scalar<T2>::__value, void>::__type std::__fill_a1<float **, float *>(T1, T1, const T2 &):
+     23, include "nbody.h"
+T3 std::__copy_move_a<(bool)0, __gnu_cxx::__normal_iterator<float *const *, std::vector<float *, std::allocator<float *>>>, float **>(T2, T2, T3):
+     23, include "nbody.h"
+__gnu_cxx::__enable_if<std::__is_scalar<T2>::__value, void>::__type std::__fill_a1<unsigned long *, unsigned long>(T1, T1, const T2 &):
+     23, include "nbody.h"
+T3 std::__copy_move_a<(bool)0, __gnu_cxx::__normal_iterator<const unsigned long *, std::vector<unsigned long, std::allocator<unsigned long>>>, unsigned long *>(T2, T2, T3):
+     23, include "nbody.h"
+../commons/h5Helper.cpp:
+make: [check_output] Error 1 (ignored)
+make: [check_output] Error 1 (ignored)
+make: [check_output] Error 1 (ignored)
+make: [check_output] Error 1 (ignored)
+make: [check_output] Error 1 (ignored)
+make: [check_output] Error 1 (ignored)
+make: [check_output] Error 1 (ignored)
+make: [check_output] Error 1 (ignored)
+make: [check_output] Error 1 (ignored)
+make: [check_output] Error 1 (ignored)
+You are using pip version 9.0.3, however version 22.3.1 is available.
+You should consider upgrading via the 'pip install --upgrade pip' command.

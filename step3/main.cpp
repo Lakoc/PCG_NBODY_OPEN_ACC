@@ -98,19 +98,19 @@ int main(int argc, char **argv) {
 
 
     // 4. Run the loop - calculate new Particle positions.
-    for (int s = 0; s < steps; s++) {
-        calculate_velocity(s % 2 ? particles_next : particles_curr,
-                           s % 2 ? particles_curr : particles_next, N, dt);
-
-        /// In step 4 - fill in the code to store Particle snapshots.
-        if (writeFreq > 0 && (s % writeFreq == 0)) {
-
-            /*float4 comOnGPU = {0.0f, 0.0f, 0.0f, 0.f};
-
-            h5Helper.writeParticleData(s / writeFreq);
-            h5Helper.writeCom(comOnGPU.x, comOnGPU.y, comOnGPU.z, comOnGPU.w, s / writeFreq);*/
-        }
-    }// for s ...
+//    for (int s = 0; s < steps; s++) {
+//        calculate_velocity(s % 2 ? particles_next : particles_curr,
+//                           s % 2 ? particles_curr : particles_next, N, dt);
+//
+//        /// In step 4 - fill in the code to store Particle snapshots.
+//        if (writeFreq > 0 && (s % writeFreq == 0)) {
+//
+//            /*float4 comOnGPU = {0.0f, 0.0f, 0.0f, 0.f};
+//
+//            h5Helper.writeParticleData(s / writeFreq);
+//            h5Helper.writeCom(comOnGPU.x, comOnGPU.y, comOnGPU.z, comOnGPU.w, s / writeFreq);*/
+//        }
+//    }// for s ...
 
     // 5. In steps 3 and 4 -  Compute center of gravity
     float4 comOnGPU = centerOfMassGPU((steps % 2 ? particles_next : particles_curr), N);

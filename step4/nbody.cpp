@@ -111,6 +111,7 @@ void calculate_velocity(const Particles &p_curr,
 
 /// Compute center of gravity
 void centerOfMassGPU(const Particles &p, float *com_x, float *com_y, float *com_z, float *com_w, const int N) {
+    // clear values from previous iteration
 #pragma acc parallel present(com_x, com_y, com_z, com_w) num_gangs(1) num_workers(1) vector_length(1) async(COM_STREAM)
     {
         *com_x = 0.0f;
@@ -118,6 +119,7 @@ void centerOfMassGPU(const Particles &p, float *com_x, float *com_y, float *com_
         *com_z = 0.0f;
         *com_w = 0.0f;
     }
+    // reduce by calculating weighted average of positions, values are present -> no redundant copy
 #pragma acc parallel loop present(p, com_x, com_y, com_z, com_w) reduction(+:com_x[:1], com_y[:1], com_z[:1], com_w[:1]) async(COM_STREAM)
     for (unsigned particle_index = 0; particle_index < N; particle_index++) {
         float particle_weight = p.weight[particle_index];
@@ -126,6 +128,7 @@ void centerOfMassGPU(const Particles &p, float *com_x, float *com_y, float *com_
         *com_z += p.pos_z[particle_index] * particle_weight;
         *com_w += particle_weight;
     }
+    // divide by mass to get correct values
 #pragma acc parallel present(com_x, com_y, com_z, com_w) num_gangs(1) num_workers(1) vector_length(1) async(COM_STREAM)
     {
         *com_x /= *com_w;

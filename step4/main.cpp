@@ -106,34 +106,39 @@ int main(int argc, char **argv) {
 #pragma acc enter data copyin(p_com_x[:1], p_com_y[:1], p_com_z[:1], p_com_w[:1]) // Copy pointers to center of mass to GPU
     // 4. Run the loop - calculate new Particle positions.
     for (int s = 0; s < steps; s++) {
-#pragma acc wait(VEL_STREAM)
+#pragma acc wait(VEL_STREAM) // wait for calculation of previous particles state
         centerOfMassGPU((steps % 2 ? particles_next : particles_curr),
                         p_com_x, p_com_y, p_com_z, p_com_w, N);
 
         /// In step 4 - fill in the code to store Particle snapshots.
         if (writeFreq > 0 && (s % writeFreq == 0)) {
-            (steps % 2 ? particles_next : particles_curr).copyToCPU();
-#pragma acc wait(VEL_STREAM)
+            (steps % 2 ? particles_next : particles_curr).copyToCPU(); // same stream, to implicitly synchronize
+#pragma acc wait(VEL_STREAM) // wait for copy to finish and start calculation for next iteration on same stream
             calculate_velocity(s % 2 ? particles_next : particles_curr,
                                s % 2 ? particles_curr : particles_next, N, dt);
+
+#pragma acc wait(COM_STREAM) // wait for center of mass calculation completed
+#pragma acc update host(p_com_x[:1], p_com_y[:1], p_com_z[:1], p_com_w[:1]) async(COM_STREAM) // copy data to cpu
+
             // since memory descriptor is attached to curr arr, there is need to copy values to properly calculate COM on CPU
             if (steps % 2 > 0) {
                 particles_curr.copy(particles_next);
             }
 
-#pragma acc wait(COM_STREAM)
-#pragma acc update host(p_com_x[:1], p_com_y[:1], p_com_z[:1], p_com_w[:1]) async(COM_STREAM)
             h5Helper.writeParticleData(s / writeFreq);
-#pragma acc wait(COM_STREAM)
+
+#pragma acc wait(COM_STREAM) // wait to get current com values to cpu
             h5Helper.writeCom(comOnGPU.x, comOnGPU.y, comOnGPU.z, comOnGPU.w, s / writeFreq);
         } else {
+            // if there is no write, calculate only particles next state
             calculate_velocity(s % 2 ? particles_next : particles_curr,
                                s % 2 ? particles_curr : particles_next, N, dt);
         }
 
     }// for s ...
 
-#pragma acc wait
+#pragma acc wait // wait for everything to finish
+
     // 5. In steps 3 and 4 -  Compute center of gravity
     centerOfMassGPU((steps % 2 ? particles_next : particles_curr),
                     p_com_x, p_com_y, p_com_z, p_com_w, N);

@@ -110,22 +110,29 @@ void calculate_velocity(const Particles &p_curr,
 //----------------------------------------------------------------------------------------------------------------------
 
 /// Compute center of gravity
-float4 centerOfMassGPU(const Particles &p,
-                       const int N) {
-    float weighted_sum_pos_x = 0.0f;
-    float weighted_sum_pos_y = 0.0f;
-    float weighted_sum_pos_z = 0.0f;
-    float com_w = 0.0f;
-#pragma acc parallel loop present(p) reduction(+:weighted_sum_pos_x, weighted_sum_pos_y, weighted_sum_pos_z, com_w) gang worker vector async(COM_STREAM)
+void centerOfMassGPU(const Particles &p, float *com_x, float *com_y, float *com_z, float *com_w, const int N) {
+#pragma acc parallel present(com_x, com_y, com_z, com_w) num_gangs(1) num_workers(1) vector_length(1) async(COM_STREAM)
+    {
+        *com_x = 0.0f;
+        *com_y = 0.0f;
+        *com_z = 0.0f;
+        *com_w = 0.0f;
+    }
+#pragma acc parallel loop present(p, com_x, com_y, com_z, com_w) reduction(+:com_x[:1], com_y[:1], com_z[:1], com_w[:1]) async(COM_STREAM)
     for (unsigned particle_index = 0; particle_index < N; particle_index++) {
         float particle_weight = p.weight[particle_index];
-        weighted_sum_pos_x += p.pos_x[particle_index] * particle_weight;
-        weighted_sum_pos_y += p.pos_y[particle_index] * particle_weight;
-        weighted_sum_pos_z += p.pos_z[particle_index] * particle_weight;
-        com_w += particle_weight;
+        *com_x += p.pos_x[particle_index] * particle_weight;
+        *com_y += p.pos_y[particle_index] * particle_weight;
+        *com_z += p.pos_z[particle_index] * particle_weight;
+        *com_w += particle_weight;
     }
-#pragma acc wait(COM_STREAM)
-    return {weighted_sum_pos_x / com_w, weighted_sum_pos_y / com_w, weighted_sum_pos_z / com_w, com_w};
+#pragma acc parallel present(com_x, com_y, com_z, com_w) num_gangs(1) num_workers(1) vector_length(1) async(COM_STREAM)
+    {
+        *com_x /= *com_w;
+        *com_y /= *com_w;
+        *com_z /= *com_w;
+    }
+
 }// end of centerOfMassGPU
 //----------------------------------------------------------------------------------------------------------------------
 

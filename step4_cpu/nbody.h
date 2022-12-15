@@ -27,6 +27,7 @@
 
 #define VEL_STREAM 1
 #define COM_STREAM 2
+#define MEM_STREAM 3
 
 /// Gravity constant
 constexpr float G = 6.67384e-11f;
@@ -119,11 +120,11 @@ struct Particles {
     }
 
     void copyToGPU() {
-#pragma acc update device(pos_x[0:p_count], pos_y[0:p_count], pos_z[0:p_count], vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count], weight[0:p_count])
+#pragma acc update device(pos_x[0:p_count], pos_y[0:p_count], pos_z[0:p_count], vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count], weight[0:p_count]) async(VEL_STREAM)
     }
 
     void copyToCPU() {
-#pragma acc update host(pos_x[0:p_count], pos_y[0:p_count], pos_z[0:p_count], vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count], weight[0:p_count])
+#pragma acc update host(pos_x[0:p_count], pos_y[0:p_count], pos_z[0:p_count], vel_x[0:p_count], vel_y[0:p_count], vel_z[0:p_count], weight[0:p_count]) async(VEL_STREAM)
     }
 
     void copy(const Particles &p) {
@@ -157,10 +158,12 @@ void calculate_velocity(const Particles &p_curr,
  * Compute center of gravity - implement in steps 3 and 4.
  * @param [in] p - Particles
  * @param [in] N - Number of particles
- * @return Center of Mass [x, y, z] and total weight[w]
+ * @param [in] *com_x - pointer where to store center of mass pos_x
+ * @param [in] *com_y - pointer where to store center of mass pos_y
+ * @param [in] *com_z - pointer where to store center of mass pos_z
+ * @param [in] *com_w - pointer where to store center of mass weight
  */
-float4 centerOfMassGPU(const Particles &p,
-                       const int N);
+void centerOfMassGPU(const Particles &p, float *com_x, float *com_y, float *com_z, float *com_w, const int N);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

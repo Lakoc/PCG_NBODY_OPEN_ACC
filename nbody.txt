@@ -19,7 +19,7 @@
 
 Krok 1: základní implementace
 ===============================================================================
-i           Velikost dat    	čas jedne iterace [s]
+i           Velikost dat    	Čas jedné iterace [s]
 10          N: 25600            Time: 0.005506 s
 11          N: 28160            Time: 0.006745 s
 12          N: 30720            Time: 0.007514 s
@@ -40,15 +40,15 @@ i           Velikost dat    	čas jedne iterace [s]
 Vyskytla se nějaká anomálie v datech
 Pokud ano, vysvětlete:
 
-    Ano, v měřeních se vyskytla stejná anomalie jako v projektu 1. Zde však není až tak patrná, jelikož časy výpočtů jsou kratší:
+    Ano, v měřeních se vyskytla stejná anomálie jako v projektu 1. Zde však není až tak patrná, jelikož časy výpočtů jsou kratší:
     ```Grafická karta Nvidia A100 na clusteru Karolina disponuje 108 SM jednotkami.
-    Dle zadání blok disponuje 512 vlákny, tudiž vstup o velikosti N=53760 se namapuje na 105 bloků, což vede k dobrému využití (105/108) skoro všech SM jednotek a odpadá nutnost přepínání kontextu.
+    Dle zadání blok disponuje 512 vlákny, tudíž vstup o velikosti N=53760 se namapuje na 105 bloků, což vede k dobrému využití (105/108) skoro všech SM jednotek a odpadá nutnost přepínání kontextu.
     Naopak vstup o velikosti N=56320 se rozdělí na 110 bloků, což nutně vede k tomu, že zbylé dva bloky musí čekat, až dojde k přepnutí kontextu, aby mohly zahájit svojí činnost, což vede k časové prodlevě.```
 
 
 Krok 2: optimalizace kódu
 ===============================================================================
-i           Velikost dat    	čas jedne iterace [s]
+i           Velikost dat    	Čas jedné iterace [s]
 10          N: 25600            Time: 0.003753 s
 11          N: 28160            Time: 0.004130 s
 12          N: 30720            Time: 0.004540 s
@@ -72,15 +72,15 @@ Došlo ke zrychlení?
 
 Popište dva hlavní důvody:
 
-    Obdobně jako v předchozím kroce je odpověď velmi podobobná k té z projektu 1:
+    Obdobně jako v předchozím kroku je odpověď velmi podobná k té z projektu 1:
     ```Odpadla nutnost synchronizace mezi kernely, taktéž došlo k lepšímu znovupoužití načtených hodnot v registrech.
     Zároveň není nutné počítat veličiny jako vzdálenost na ose x,y, ... dvakrát.
-    Částice do sebe naražejí, nebo na sebe působí gravitační sílu - došlo tedy k omezení zbytečného kódu, kdy probíhal výpočet, avšak do vektoru rychlosti byla přiřazena 0.
+    Částice do sebe narážejí, nebo na sebe působí gravitační sílu - došlo tedy k omezení zbytečného kódu, kdy probíhal výpočet, avšak do vektoru rychlosti byla přiřazena 0.
     Nyní je v obou případech přičtena nová rychlost a došlo k jistému snížení divergence vláken při zapsání výsledků (2x2->2).```
 
-    Dvěmi hlavními faktory je omezení zbytečného načítaní hodnot častíc z globální paměti a sdílení výpočtu, který byl v předchozím kroce proveden 2x.
+    Dvěma hlavními faktory je omezení zbytečného načítaní hodnot částíc z globální paměti a sdílení výpočtu, který byl v předchozím kroku proveden 2x.
 
-Krok 3: Težiště
+Krok 3: Těžiště
 ===============================================================================
 Kolik kernelů je nutné použít k výpočtu?
 
@@ -88,14 +88,14 @@ Kolik kernelů je nutné použít k výpočtu?
 
 Kolik další paměti jste museli naalokovat?
 
-    Nebylo nutné explictině alokovat žádnou další pamět, pokud je zanedbána definice proměnných, do kterých je provedena reducke.
+    Nebylo nutné explicitně alokovat žádnou další paměť, pokud je zanedbána definice proměnných, do kterých je provedena redukce.
 
 Jaké je zrychelní vůči sekveční verzi?
 (provedu to smyčkou #pragma acc parallel loop seq)
 Zdůvodněte:
 
-    Z časové složitosti sekvenční vůčí paralelní variantě je patrné, že paralelní musí byt při větších vstupech rychlejší.
-    Pro vstup o velikosti 25,6k částic je dosáhnuto zrychlení ~25x, pro vstup o velikosti 64k ~60x.
+    Z časové složitosti sekvenční vůči paralelní variantě je patrné, že paralelní musí byt při větších vstupech rychlejší.
+    Pro vstup o velikosti 25,6k částic je dosaženo zrychlení ~25x, pro vstup o velikosti 64k ~60x.
 
 i           Velikost dat    	čas redukce GPU [s]     čas redukce CPU [s]
 10          N: 25600            Time: 0.000225 s        Time: 0.005573 s
@@ -132,7 +132,7 @@ N            čas GPU [s]    propustnost paměti GPU [MB/s]    výkon GPU [MFLOP
 1048576      2.679690       16.61                            5 427 404.83          ~291.579612*4    ~435.24
 
 Od jakého počtu částic se vyplatí počítat na grafické kartě?
-    Jelikož je zde využit výpočet na CPU s více vlakny se stejně optimalizavoným kodem, rozdíly nejsou při malých vstupech již tolik výrazné.
+    Jelikož je zde využit výpočet na CPU s více vlákny se stejně optimalizovaným kódem, rozdíly nejsou při malých vstupech již tolik výrazné.
     Záleží zde tedy na samotné aplikaci a pořizovací ceně GPU vs CPU - zrychlení 2x na malých vstupech nemusí být dostačující argument.
-    Na vstupech větších než 2^5*1024 je dosáhnuto zrychlení 100x, což může být již dostačujícím argumentem pro výpočet na GPU.
+    Na vstupech větších než 2^5*1024 je dosaženo zrychlení 100x, což může být již dostačujícím argumentem pro výpočet na GPU.
 ===============================================================================

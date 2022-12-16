@@ -20,73 +20,119 @@
 Krok 1: základní implementace
 ===============================================================================
 i           Velikost dat    	čas jedne iterace [s]
-10          N: 25600            Time: 0.005000 s
-11          N: 28160            Time: 0.006000 s
-12          N: 30720            Time: 0.009000 s
-13          N: 33280            Time: 0.008000 s
-14          N: 35840            Time: 0.008000 s
-15          N: 38400            Time: 0.009000 s
-16          N: 40960            Time: 0.010000 s
-17          N: 43520            Time: 0.011000 s
-18          N: 46080            Time: 0.012000 s
-19          N: 48640            Time: 0.015000 s
-20          N: 51200            Time: 0.014000 s
-21          N: 53760            Time: 0.014000 s
-22          N: 56320            Time: 0.017000 s
-23          N: 58880            Time: 0.018000 s
-24          N: 61440            Time: 0.019000 s
-25          N: 64000            Time: 0.020000 s
+10          N: 25600            Time: 0.005506 s
+11          N: 28160            Time: 0.006745 s
+12          N: 30720            Time: 0.007514 s
+13          N: 33280            Time: 0.008146 s
+14          N: 35840            Time: 0.009051 s
+15          N: 38400            Time: 0.009386 s
+16          N: 40960            Time: 0.010009 s
+17          N: 43520            Time: 0.011868 s
+18          N: 46080            Time: 0.012625 s
+19          N: 48640            Time: 0.013294 s
+20          N: 51200            Time: 0.014001 s
+21          N: 53760            Time: 0.014674 s
+22          N: 56320            Time: 0.017840 s
+23          N: 58880            Time: 0.018745 s
+24          N: 61440            Time: 0.019550 s
+25          N: 64000            Time: 0.020396 s
 
 Vyskytla se nějaká anomálie v datech
 Pokud ano, vysvětlete:
 
+    Ano, v měřeních se vyskytla stejná anomalie jako v projektu 1. Zde však není až tak patrná, jelikož časy výpočtů jsou kratší:
+    ```Grafická karta Nvidia A100 na clusteru Karolina disponuje 108 SM jednotkami.
+    Dle zadání blok disponuje 512 vlákny, tudiž vstup o velikosti N=53760 se namapuje na 105 bloků, což vede k dobrému využití (105/108) skoro všech SM jednotek a odpadá nutnost přepínání kontextu.
+    Naopak vstup o velikosti N=56320 se rozdělí na 110 bloků, což nutně vede k tomu, že zbylé dva bloky musí čekat, až dojde k přepnutí kontextu, aby mohly zahájit svojí činnost, což vede k časové prodlevě.```
+
+
 Krok 2: optimalizace kódu
 ===============================================================================
 i           Velikost dat    	čas jedne iterace [s]
-10          N: 25600            Time: 0.003000 s
-11          N: 28160            Time: 0.004000 s
-12          N: 30720            Time: 0.004000 s
-13          N: 33280            Time: 0.004000 s
-14          N: 35840            Time: 0.006000 s
-15          N: 38400            Time: 0.005000 s
-16          N: 40960            Time: 0.006000 s
-17          N: 43520            Time: 0.007000 s
-18          N: 46080            Time: 0.007000 s
-19          N: 48640            Time: 0.008000 s
-20          N: 51200            Time: 0.008000 s
-21          N: 53760            Time: 0.008000 s
-22          N: 56320            Time: 0.011000 s
-23          N: 58880            Time: 0.011000 s
-24          N: 61440            Time: 0.012000 s
-25          N: 64000            Time: 0.012000 s
+10          N: 25600            Time: 0.003753 s
+11          N: 28160            Time: 0.004130 s
+12          N: 30720            Time: 0.004540 s
+13          N: 33280            Time: 0.004913 s
+14          N: 35840            Time: 0.005285 s
+15          N: 38400            Time: 0.005658 s
+16          N: 40960            Time: 0.006031 s
+17          N: 43520            Time: 0.007200 s
+18          N: 46080            Time: 0.007626 s
+19          N: 48640            Time: 0.008094 s
+20          N: 51200            Time: 0.008503 s
+21          N: 53760            Time: 0.008952 s
+22          N: 56320            Time: 0.011338 s
+23          N: 58880            Time: 0.011875 s
+24          N: 61440            Time: 0.012423 s
+25          N: 64000            Time: 0.012931 s
 
 Došlo ke zrychlení?
 
+    Ano, došlo ke zrychlení cca 50%.
+
 Popište dva hlavní důvody:
 
+    Obdobně jako v předchozím kroce je odpověď velmi podobobná k té z projektu 1:
+    ```Odpadla nutnost synchronizace mezi kernely, taktéž došlo k lepšímu znovupoužití načtených hodnot v registrech.
+    Zároveň není nutné počítat veličiny jako vzdálenost na ose x,y, ... dvakrát.
+    Částice do sebe naražejí, nebo na sebe působí gravitační sílu - došlo tedy k omezení zbytečného kódu, kdy probíhal výpočet, avšak do vektoru rychlosti byla přiřazena 0.
+    Nyní je v obou případech přičtena nová rychlost a došlo k jistému snížení divergence vláken při zapsání výsledků (2x2->2).```
+
+    Dvěmi hlavními faktory je omezení zbytečného načítaní hodnot častíc z globální paměti a sdílení výpočtu, který byl v předchozím kroce proveden 2x.
 
 Krok 3: Težiště
 ===============================================================================
 Kolik kernelů je nutné použít k výpočtu?
 
+    V kódu stačí použít 1 kernel, ten je však interně v rámci OpenAcc rozdělen na 2 kernely.
+
 Kolik další paměti jste museli naalokovat?
+
+    Nebylo nutné explictině alokovat žádnou další pamět, pokud je zanedbána definice proměnných, do kterých je provedena reducke.
 
 Jaké je zrychelní vůči sekveční verzi?
 (provedu to smyčkou #pragma acc parallel loop seq)
 Zdůvodněte:
 
+    Z časové složitosti sekvenční vůčí paralelní variantě je patrné, že paralelní musí byt při větších vstupech rychlejší.
+    Pro vstup o velikosti 25,6k částic je dosáhnuto zrychlení ~25x, pro vstup o velikosti 64k ~60x.
+
+i           Velikost dat    	čas redukce GPU [s]     čas redukce CPU [s]
+10          N: 25600            Time: 0.000225 s        Time: 0.005573 s
+11          N: 28160            Time: 0.000218 s        Time: 0.006139 s
+12          N: 30720            Time: 0.000249 s        Time: 0.007332 s
+13          N: 33280            Time: 0.000207 s        Time: 0.008589 s
+14          N: 35840            Time: 0.000212 s        Time: 0.007161 s
+15          N: 38400            Time: 0.000213 s        Time: 0.007643 s
+16          N: 40960            Time: 0.000208 s        Time: 0.008209 s
+17          N: 43520            Time: 0.000201 s        Time: 0.008627 s
+18          N: 46080            Time: 0.000194 s        Time: 0.011775 s
+19          N: 48640            Time: 0.000197 s        Time: 0.011946 s
+20          N: 51200            Time: 0.000215 s        Time: 0.010989 s
+21          N: 53760            Time: 0.000212 s        Time: 0.011015 s
+22          N: 56320            Time: 0.000250 s        Time: 0.011526 s
+23          N: 58880            Time: 0.000212 s        Time: 0.012053 s
+24          N: 61440            Time: 0.000192 s        Time: 0.012204 s
+25          N: 64000            Time: 0.000201 s        Time: 0.012588 s
 
 
 
 Krok 4: analýza výkonu
 ======================
-N            čas GPU [s]   propustnost GPU [MB/s]    výkon GPU [MFLOPS]   čas CPU [s]  propustnost CPU [MB/s]    výkon CPU [MFLOPS]
-2^n * 1024      ...            ...            ...          ...             ...               ...                    ...
-    ...         ...            ...            ...          ...             ...               ...                    ...
-    ...         ...            ...            ...          ...             ...               ...                    ...
-
-Pro n 1 az 10
+N            čas GPU [s]    propustnost paměti GPU [MB/s]    výkon GPU [MFLOPS]   čas CPU [s]       zrychlení [-]
+2048         0.011981       164.82                             204 089.74             0.028414         2.37
+4096         0.012121       165.84                             411 569.14             0.087911         7.25
+8192         0.012108       165.95                             824 983.66             0.161600        13.35
+16384        0.012102       163.78                           1 558 748.47             0.457747        37.82
+32768        0.012280       148.95                           2 962 116.89             1.309196       106.61
+65536        0.014199       107.99                           4 296 421.14             4.815202       339.12
+131072       0.050464       60.06                            4 595 421.15            16.435802       325.69
+262144       0.179121       32.32                            5 133 787.00            65.217442       364.19
+524288       0.684046       19.11                            5 323 886.65           291.579612       426.26
+1048576      2.679690       16.61                            5 427 404.83          ~291.579612*4    ~435.24
 
 Od jakého počtu částic se vyplatí počítat na grafické kartě?
-
+    Jelikož je zde využit výpočet na CPU s více vlakny se stejně optimalizavoným kodem, rozdíly nejsou při malých vstupech již tolik výrazné.
+    Záleží zde tedy na samotné aplikaci a pořizovací ceně GPU vs CPU - zrychlení 2x na malých vstupech nemusí být dostačující argument.
+    Na vstupech větších než 2^5*1024 je dosáhnuto zrychlení 100x, což může být již dostačujícím argumentem pro výpočet na GPU.
 ===============================================================================

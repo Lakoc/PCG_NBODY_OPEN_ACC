@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
     // Stop watchclock
     const auto endTime = std::chrono::high_resolution_clock::now();
     const double time = (endTime - startTime) / std::chrono::microseconds(1);
-    printf("Time: %f s\n", time / 10e6);
+    printf("Time: %f s\n", time / 1e6);
 
 
     // 5. Copy data from GPU back to CPU.

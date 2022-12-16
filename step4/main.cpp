@@ -1,10 +1,10 @@
 /**
  * @file      main.cpp
  *
- * @author    Jiri Jaros \n
+ * @author    Alexander Polok \n
  *            Faculty of Information Technology \n
  *            Brno University of Technology \n
- *            jarosjir@fit.vutbr.cz
+ *            xpolok03@stud.fit.vutbr.cz
  *
  * @brief     PCG Assignment 2
  *            N-Body simulation in ACC

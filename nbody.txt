@@ -37,23 +37,6 @@ i           Velikost dat    	čas jedne iterace [s]
 24          N: 61440            Time: 0.019000 s
 25          N: 64000            Time: 0.020000 s
 
-Time: 0.000553 s
-Time: 0.000674 s
-Time: 0.000803 s
-Time: 0.000814 s
-Time: 0.000980 s
-Time: 0.000938 s
-Time: 0.001001 s
-Time: 0.001190 s
-Time: 0.001260 s
-Time: 0.001329 s
-Time: 0.001400 s
-Time: 0.001468 s
-Time: 0.001784 s
-Time: 0.001872 s
-Time: 0.001956 s
-Time: 0.002365 s
-
 Vyskytla se nějaká anomálie v datech
 Pokud ano, vysvětlete:
 
